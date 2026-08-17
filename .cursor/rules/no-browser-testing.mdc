@@ -1,0 +1,54 @@
+---
+description: Verification policy — never test this app in a browser; the user runs UI checks
+alwaysApply: true
+---
+
+# Do Not Test In The Browser
+
+Browser automation on this project causes real problems (stuck IndexedDB
+connections that block schema upgrades, orphaned dev servers on extra ports,
+stolen focus). Never do it.
+
+## Forbidden
+
+- Any `cursor-ide-browser` tool: navigate, click, type, snapshot, screenshot, CDP.
+- Launching a `browser-use` subagent, or asking any subagent to drive a browser.
+- Starting extra dev servers on alternate ports/origins to get a "clean" state.
+- Wiping IndexedDB / localStorage from a page context.
+
+## Verify This Way Instead
+
+1. **Static checks are mandatory** — always run these after substantive edits:
+
+```bash
+npm run build   # tsc -b + vite build
+npm run lint    # oxlint
+```
+
+2. **Check the dev server without a browser** — `curl` is fine for endpoints and
+   for confirming a module was transformed as expected:
+
+```bash
+curl -s http://localhost:5173/api/streams
+curl -s http://localhost:5173/src/lib/db.ts | rg -n "DB_VERSION"
+```
+
+3. **Pure logic** — if compute/parsing/rendering math needs proving, extract it
+   into a plain function and exercise it with a throwaway Node script rather
+   than clicking through the UI.
+
+## When Behavior Genuinely Needs A Human
+
+Do not guess and do not silently skip verification. State plainly what changed,
+what you verified statically, and what still needs eyes on it. Optionally list
+the exact click-through steps and expected result so a later manual pass is
+easy.
+
+Never ask how to proceed. Always assume **ship as-is** after static checks.
+Do not use `AskQuestion` (or any other prompt) to offer "I'll verify it
+myself" / "Debug together" / "Ship as-is".
+
+## Reporting
+
+Never describe unverified behavior as if it were tested. Say "build and lint
+pass; UI behavior not verified" instead of implying a passing test run.
